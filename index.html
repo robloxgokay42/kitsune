@@ -16,45 +16,47 @@
             <h1>YeniWatch</h1>
             <p>Güncel animeleri izle!</p>
             <div class="header-actions">
-                <input type="text" id="search" placeholder="Dizi veya anime ara..." aria-label="Anime ara">
-                <button class="btn" onclick="location.href='register.html'">Üye Ol</button>
-                <button class="btn" onclick="location.href='login.html'">Üye Girişi</button>
+                <input type="text" id="search" placeholder="Dizi veya anime ara..." aria-label="Anime ara" autocomplete="off">
+                <nav>
+                    <ul>
+                        <li><a href="#featured">Öne Çıkan</a></li>
+                        <li><a href="#latest">Popüler Son</a></li>
+                        <li><a href="#new-animes">Yeni Animeler</a></li>
+                        <li><a href="#new-episodes">Yeni Bölümler</a></li>
+                        <li><a href="#comments">Yorumlar</a></li>
+                    </ul>
+                </nav>
+                <div class="auth-buttons">
+                    <button class="btn" onclick="location.href='register.html'">Üye Ol</button>
+                    <button class="btn" onclick="location.href='login.html'">Üye Girişi</button>
+                </div>
             </div>
         </div>
     </header>
-    <nav>
-        <ul>
-            <li><a href="#featured">Öne Çıkan Animeler</a></li>
-            <li><a href="#latest-episodes">Popüler Son Bölümler</a></li>
-            <li><a href="#new-animes">Son Eklenen Animeler</a></li>
-            <li><a href="#new-episodes">Son Eklenen Bölümler</a></li>
-            <li><a href="#comments">Yorumlar</a></li>
-        </ul>
-    </nav>
     <main>
         <section class="featured" id="featured">
             <h2>Öne Çıkan Animeler</h2>
-            <div class="anime-grid" id="featured-animes"></div>
+            <div class="anime-grid" id="featured-animes" role="region" aria-label="Öne çıkan animeler"></div>
         </section>
-        <section class="latest-episodes" id="latest-episodes">
+        <section class="latest-episodes" id="latest">
             <h2>Popüler Animelerden Son Bölümler</h2>
-            <div class="anime-grid" id="latest-episodes"></div>
+            <div class="anime-grid" id="latest-episodes" role="region" aria-label="Popüler son bölümler"></div>
         </section>
         <section class="new-animes" id="new-animes">
             <h2>Son Eklenen Animeler</h2>
-            <div class="anime-grid" id="new-animes"></div>
+            <div class="anime-grid" id="new-animes" role="region" aria-label="Son eklenen animeler"></div>
         </section>
         <section class="new-episodes" id="new-episodes">
             <h2>Son Eklenen Anime Bölümleri</h2>
-            <div class="anime-grid" id="new-episodes"></div>
+            <div class="anime-grid" id="new-episodes" role="region" aria-label="Son eklenen bölümler"></div>
         </section>
         <section class="comments-section" id="comments">
             <h2>Yorumlar</h2>
             <div class="comment-form">
-                <textarea id="comment-input" placeholder="Yorum yaz..." aria-label="Yorum gir"></textarea>
+                <textarea id="comment-input" placeholder="Yorum yaz..." aria-label="Yorum gir" rows="3"></textarea>
                 <button class="btn" onclick="addComment()">Yorum Ekle</button>
             </div>
-            <div id="comments-list" role="region" aria-live="polite"></div>
+            <div id="comments-list" role="region" aria-live="polite" aria-label="Yorumlar listesi"></div>
         </section>
     </main>
     <footer>
