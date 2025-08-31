@@ -18,16 +18,16 @@ fetch('https://ipinfo.io/json')
     .then(response => response.json())
     .then(data => {
         if (data.country !== 'TR') {
-            alert('Bu site sadece Türkiye’den erişime açıktır.');
-            window.location.href = 'https://www.google.com';
+            document.body.innerHTML = '<h1>Bu site sadece Türkiye’den erişime açıktır.</h1>';
+            setTimeout(() => window.location.href = 'https://www.google.com', 3000);
         }
     })
     .catch(() => {
-        alert('Konum doğrulaması başarısız. Lütfen Türkiye’den bağlanın.');
-        window.location.href = 'https://www.google.com';
+        document.body.innerHTML = '<h1>Konum doğrulaması başarısız. Lütfen Türkiye’den bağlanın.</h1>';
+        setTimeout(() => window.location.href = 'https://www.google.com', 3000);
     });
 
-// Örnek anime verileri (Firebase'den dinamik olarak çekilebilir)
+// Örnek anime verileri (Firebase'den çekilebilir)
 const animes = [
     { id: 1, title: "Tougen Anki", score: 8.3, year: 2025, type: "featured", episode: "1. Sezon 8. Bölüm", daysAgo: 1 },
     { id: 2, title: "Dan Da Dan", score: 7.5, year: 2025, type: "featured", episode: "2. Sezon 9. Bölüm", daysAgo: 2 },
@@ -42,19 +42,20 @@ function loadAnimes() {
     const sections = {
         featured: document.getElementById('featured-animes'),
         latest: document.getElementById('latest-episodes'),
-        new: document.getElementById('new-animes')
+        new: document.getElementById('new-animes'),
+        episodes: document.getElementById('new-episodes')
     };
 
     animes.forEach(anime => {
         const card = document.createElement('div');
         card.className = 'anime-card';
         card.innerHTML = `
-            <img src="https://via.placeholder.com/150" alt="${anime.title}">
+            <img src="https://via.placeholder.com/180" alt="${anime.title}">
             <h3>${anime.title}</h3>
             <p class="rating">Puan: ${anime.score}/10</p>
             <p>Yıl: ${anime.year}</p>
             ${anime.episode ? `<p>${anime.episode} - ${anime.daysAgo} gün önce</p>` : ''}
-            <div class="rating-controls">
+            <div class="rating-controls" role="group" aria-label="Puanlama">
                 <button class="rate-btn" onclick="rateAnime(${anime.id}, 1)">1</button>
                 <button class="rate-btn" onclick="rateAnime(${anime.id}, 2)">2</button>
                 <button class="rate-btn" onclick="rateAnime(${anime.id}, 3)">3</button>
@@ -62,23 +63,22 @@ function loadAnimes() {
                 <button class="rate-btn" onclick="rateAnime(${anime.id}, 5)">5</button>
             </div>
         `;
-        if (anime.type === 'featured') sections.featured.appendChild(card);
-        else if (anime.type === 'latest') sections.latest.appendChild(card);
-        else if (anime.type === 'new') sections.new.appendChild(card);
+        if (anime.type === 'featured') sections.featured.appendChild(card.cloneNode(true));
+        else if (anime.type === 'latest') sections.latest.appendChild(card.cloneNode(true));
+        else if (anime.type === 'new') sections.new.appendChild(card.cloneNode(true));
     });
 
     // Son eklenen bölümler
-    const newEpisodes = document.getElementById('new-episodes');
     animes.forEach(anime => {
         if (anime.episode) {
             const episodeCard = document.createElement('div');
             episodeCard.className = 'anime-card';
             episodeCard.innerHTML = `
-                <img src="https://via.placeholder.com/150" alt="${anime.title} Bölüm">
+                <img src="https://via.placeholder.com/180" alt="${anime.title} Bölüm">
                 <h3>${anime.episode} - ${anime.daysAgo} gün önce</h3>
                 <p>${anime.title}</p>
             `;
-            newEpisodes.appendChild(episodeCard);
+            sections.episodes.appendChild(episodeCard);
         }
     });
 }
@@ -102,7 +102,6 @@ function addComment() {
         commentsRef.push({
             text: commentInput,
             timestamp: new Date().toISOString(),
-            replies: [],
             user: `Kullanıcı${Math.floor(Math.random() * 1000)}`
         });
         document.getElementById('comment-input').value = '';
@@ -124,16 +123,25 @@ function loadComments() {
                 <p><strong>${comment.user}</strong>: ${comment.text} <small>${new Date(comment.timestamp).toLocaleString('tr-TR')}</small></p>
                 <textarea class="reply-input" placeholder="Yanıt yaz..." aria-label="Yanıt gir"></textarea>
                 <button class="btn" onclick="addReply('${childSnapshot.key}')">Yanıt Ekle</button>
-                <div class="replies" role="region" aria-live="polite"></div>
+                <div class="replies"></div>
             `;
             commentsList.appendChild(commentDiv);
+            loadReplies(commentDiv, childSnapshot.key);
+        });
+    });
+}
 
-            comment.replies.forEach(reply => {
-                const replyDiv = document.createElement('div');
-                replyDiv.className = 'reply';
-                replyDiv.innerHTML = `<p><strong>${reply.user || 'Misafir'}</strong>: ${reply.text} <small>${new Date(reply.timestamp).toLocaleString('tr-TR')}</small></p>`;
-                commentDiv.querySelector('.replies').appendChild(replyDiv);
-            });
+function loadReplies(commentDiv, commentId) {
+    const repliesDiv = commentDiv.querySelector('.replies');
+    const repliesRef = database.ref(`comments/${commentId}/replies`);
+    repliesRef.on('value', (snapshot) => {
+        repliesDiv.innerHTML = '';
+        snapshot.forEach(childSnapshot => {
+            const reply = childSnapshot.val();
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'reply';
+            replyDiv.innerHTML = `<p><strong>${reply.user || 'Misafir'}</strong>: ${reply.text} <small>${new Date(reply.timestamp).toLocaleString('tr-TR')}</small></p>`;
+            repliesDiv.appendChild(replyDiv);
         });
     });
 }
@@ -143,7 +151,8 @@ function addReply(commentId) {
     if (replyInput) {
         const commentRef = database.ref(`comments/${commentId}`);
         commentRef.once('value', (snapshot) => {
-            const comment = snapshot.val();
+            const comment = snapshot.val() || { replies: [] };
+            comment.replies = comment.replies || [];
             comment.replies.push({
                 text: replyInput,
                 timestamp: new Date().toISOString(),
@@ -172,15 +181,19 @@ function updateRatingDisplay(animeId) {
         const data = snapshot.val();
         if (data) {
             const average = data.total / data.count;
-            document.querySelector(`#anime-${animeId} .rating`).textContent = `Puan: ${average.toFixed(1)}/10 (${data.count} oy)`;
+            document.querySelectorAll(`.anime-card`).forEach(card => {
+                if (card.querySelector('h3').textContent.includes(animes.find(a => a.id === animeId).title)) {
+                    card.querySelector('.rating').textContent = `Puan: ${average.toFixed(1)}/10 (${data.count} oy)`;
+                }
+            });
         }
     });
 }
 
-// Erişilebilirlik için odaklama
-document.querySelectorAll('button').forEach(btn => {
-    btn.setAttribute('tabindex', '0');
-    btn.addEventListener('keydown', (e) => {
+// Erişilebilirlik ve klavye navigasyonu
+document.querySelectorAll('button, input, textarea').forEach(element => {
+    element.setAttribute('tabindex', '0');
+    element.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') e.target.click();
     });
 });
