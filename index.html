@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anime İzle — Örnek</title>
+  <style>
+    :root{
+      --bg:#0b0f1a; --panel:#0f1524; --muted:#96a0b5; --text:#e8eeff; --brand:#7c9cff; --accent:#ffd166; --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0a0e19,#0b0f1a);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    a{color:var(--brand);text-decoration:none}
+    header{position:sticky;top:0;z-index:10;background:rgba(11,15,26,.85);backdrop-filter:blur(8px);border-bottom:1px solid #1a2440}
+    .nav{max-width:1100px;margin:auto;display:flex;gap:16px;align-items:center;padding:12px 16px}
+    .brand{font-weight:800;letter-spacing:.3px}
+    .spacer{flex:1}
+    .pill{padding:8px 12px;border-radius:999px;background:#121a2f;border:1px solid #1a2440;color:var(--muted)}
+    main{max-width:1100px;margin:24px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:24px}
+    .card{background:var(--panel);border:1px solid #1a2440;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .card .body{padding:16px}
+    .cover{aspect-ratio:2/3;width:100%;object-fit:cover;border-radius:14px;border:1px solid #1a2440}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:12px;background:#121a2f;color:var(--muted);padding:6px 10px;border-radius:999px;border:1px solid #1a2440}
+    .section-title{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+    .section-title span{font-weight:700}
+    .muted{color:var(--muted)}
+    .input, select, textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #1a2440;background:#0d1429;color:var(--text)}
+    textarea{min-height:90px;resize:vertical}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #1a2440;background:#1a2440;color:#e8eeff;cursor:pointer}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .btn.brand{background:var(--brand);color:#0b0f1a;border:none;font-weight:700}
+    .btn.ghost{background:#121a2f}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .comment{padding:12px;border-radius:12px;border:1px solid #1a2440;background:#0d1429}
+    .comment small{color:var(--muted)}
+    .stat{display:flex;align-items:center;gap:12px}
+    .stat strong{font-size:28px}
+    footer{max-width:1100px;margin:40px auto 24px;color:var(--muted);padding:0 16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+
+  <!-- Firebase (compat sürümleri; v9+ ama v8 benzeri API) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <div class="brand">yeniwatch — demo</div>
+      <a class="pill" href="#">Anasayfa</a>
+      <a class="pill" href="#">Arşiv</a>
+      <a class="pill" href="#">Takvim</a>
+      <div class="spacer"></div>
+      <span class="muted" id="uidInfo">Bağlanıyor…</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1 style="margin:0 0 12px">Anime Sayfası (örnek)</h1>
+    <p class="muted" style="margin:0 0 24px">Aşağıdaki puan & yorum sistemi Firebase ile kalıcıdır. Her anime için farklı bir <code>?id=anime-kodu</code> kullanın.</p>
+
+    <div class="grid">
+      <!-- Sol panel: kapak & meta -->
+      <aside class="card">
+        <img id="cover" class="cover" src="https://images.unsplash.com/photo-1526318472351-c75fcf070305?q=80&w=900&auto=format&fit=crop" alt="Kapak"/>
+        <div class="body">
+          <h2 id="title">Demo Anime</h2>
+          <div class="meta">
+            <span class="tag" id="year">2024</span>
+            <span class="tag" id="episodes">12 Bölüm</span>
+            <span class="tag">SUB</span>
+          </div>
+          <p class="muted" id="synopsis" style="margin-top:8px">Bu bir örnek açıklamadır. Burayı kendi JSON verinizle doldurabilirsiniz.</p>
+        </div>
+      </aside>
+
+      <!-- Sağ panel: puan & yorumlar -->
+      <section class="card">
+        <div class="body" style="display:flex;flex-direction:column;gap:18px">
+          <!-- Puanlama -->
+          <div>
+            <div class="section-title"><span>🎯 Puan Ver</span><small class="muted">(1–10, tek seferlik)</small></div>
+            <div class="row">
+              <select id="ratingSelect" aria-label="Puan seç" class="input" style="max-width:140px">
+                <option value="10">10</option>
+                <option value="9">9</option>
+                <option value="8" selected>8</option>
+                <option value="7">7</option>
+                <option value="6">6</option>
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+              <button id="rateBtn" class="btn brand">Puanı Kaydet</button>
+              <button id="ratedBtn" class="btn ghost" style="display:none" disabled>Oy verdin ✔</button>
+              <div class="stat" style="margin-left:auto">
+                <strong id="avgScore">—</strong>
+                <div>
+                  <div>Ortalama</div>
+                  <small class="muted"><span id="voteCount">0</span> oy</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid #1a2440"/>
+
+          <!-- Yorumlar -->
+          <div>
+            <div class="section-title"><span>💬 Yorumlar</span><small class="muted">(kalıcı, düzenlenemez/silinemez)</small></div>
+            <div class="row">
+              <textarea id="commentInput" placeholder="Yorum yaz (max 1000 karakter)"></textarea>
+            </div>
+            <div class="row" style="justify-content:space-between;align-items:center">
+              <small class="muted">Topluluk kurallarına uyunuz.</small>
+              <button id="sendCommentBtn" class="btn">Gönder</button>
+            </div>
+            <div class="list" id="commentsList" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <small>⚠️ Yalnızca yayınlama hakkına sahip olduğunuz içerikleri barındırınız/bağlayınız.</small>
+  </footer>
+
+  <script>
+    // --- 1) Basit yerel anime verisi (sonra JSON'dan çekebilirsiniz) ---
+    const ANIMES = {
+      'demo': {
+        title: 'Demo Anime',
+        year: 2024,
+        episodes: 12,
+        cover: 'https://images.unsplash.com/photo-1526318472351-c75fcf070305?q=80&w=900&auto=format&fit=crop',
+        synopsis: 'Bu bir örnek açıklamadır. Kendi verinizi eklemek için ANIMES nesnesini düzenleyin veya ayrı bir animes.json kullanın.'
+      },
+      'one-piece': {
+        title: 'One Piece',
+        year: 1999,
+        episodes: 1000,
+        cover: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=900&auto=format&fit=crop',
+        synopsis: 'Denizciler, korsanlar ve efsanevi hazine üzerine sonsuz macera.'
+      }
+    };
+
+    // URL'den ?id=... oku, yoksa demo
+    const params = new URLSearchParams(location.search);
+    const animeId = (params.get('id') || 'demo').toLowerCase();
+
+    // UI'ya yerel veriyi bas
+    (function renderAnime(){
+      const a = ANIMES[animeId] || ANIMES['demo'];
+      document.getElementById('title').textContent = a.title;
+      document.getElementById('year').textContent = a.year;
+      document.getElementById('episodes').textContent = a.episodes + ' Bölüm';
+      document.getElementById('cover').src = a.cover;
+      document.getElementById('synopsis').textContent = a.synopsis;
+      document.title = a.title + ' — Anime İzle';
+    })();
+
+    // --- 2) Firebase BAŞLAT ---
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Kullanıcıyı anonim oturumla bağla (tek tık, otomatik)
+    let CURRENT_UID = null;
+    auth.signInAnonymously().then(cred => {
+      CURRENT_UID = cred.user.uid;
+      document.getElementById('uidInfo').textContent = 'Anonim bağlı: ' + CURRENT_UID.slice(0,6) + '…';
+      startRealtimeBindings();
+      checkIfAlreadyRated();
+    }).catch(err => {
+      console.error(err);
+      document.getElementById('uidInfo').textContent = 'Bağlantı hatası';
+    });
+
+    // Koleksiyon referansları
+    const ratingsCol = db.collection('animes').doc(animeId).collection('ratings'); // doc id = uid
+    const commentsCol = db.collection('animes').doc(animeId).collection('comments');
+
+    // --- 3) Puanlama: ortalama ve sayıyı canlı dinle ---
+    function startRealtimeBindings(){
+      ratingsCol.onSnapshot(snap => {
+        let sum = 0; let count = 0;
+        snap.forEach(doc => { const v = doc.data().value; if(typeof v === 'number'){ sum += v; count++; }});
+        const avg = count ? (sum / count).toFixed(1) : '—';
+        document.getElementById('avgScore').textContent = avg;
+        document.getElementById('voteCount').textContent = count;
+      });
+
+      commentsCol.orderBy('createdAt','desc').limit(50).onSnapshot(snap => {
+        const list = document.getElementById('commentsList');
+        list.innerHTML = '';
+        if (snap.empty) {
+          const el = document.createElement('div');
+          el.className = 'comment muted';
+          el.textContent = 'Henüz yorum yok. İlk yorumu sen yaz!';
+          list.appendChild(el);
+          return;
+        }
+        snap.forEach(doc => {
+          const d = doc.data();
+          const item = document.createElement('div');
+          item.className = 'comment';
+          const when = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+          const dateText = when ? when.toLocaleString() : '…';
+          const user = (d.uid||'kullanıcı').slice(0,6) + '…';
+          item.innerHTML = `<div>${escapeHtml(d.text||'')}</div><small class="muted">${dateText} • ${user}</small>`;
+          list.appendChild(item);
+        });
+      });
+    }
+
+    // Zaten oy verildi mi? (kurallar: bir kullanıcı tek oy)
+    function checkIfAlreadyRated(){
+      if(!CURRENT_UID) return;
+      ratingsCol.doc(CURRENT_UID).get().then(doc => {
+        if (doc.exists) {
+          document.getElementById('rateBtn').style.display = 'none';
+          document.getElementById('ratedBtn').style.display = 'inline-flex';
+          const v = doc.data().value;
+          if (typeof v === 'number') document.getElementById('ratingSelect').value = String(v);
+        }
+      });
+    }
+
+    // Puan kaydet (create-only; rules update/delete kapalı)
+    document.getElementById('rateBtn').addEventListener('click', async () => {
+      if(!CURRENT_UID) return alert('Bağlanıyor, lütfen tekrar dene.');
+      const val = parseInt(document.getElementById('ratingSelect').value,10);
+      if(!(val >=1 && val <=10)) return alert('Puan 1–10 olmalı.');
+      // Önce var mı bak, varsa engelle
+      const docRef = ratingsCol.doc(CURRENT_UID);
+      const prev = await docRef.get();
+      if (prev.exists) { alert('Zaten oy verdin.'); checkIfAlreadyRated(); return; }
+      await docRef.set({ value: val, uid: CURRENT_UID, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      checkIfAlreadyRated();
+    });
+
+    // Yorum gönder (immutability: rules update/delete kapalı)
+    document.getElementById('sendCommentBtn').addEventListener('click', async () => {
+      if(!CURRENT_UID) return alert('Bağlanıyor, lütfen tekrar dene.');
+      const text = (document.getElementById('commentInput').value||'').trim();
+      if (text.length === 0) return alert('Yorum boş olamaz.');
+      if (text.length > 1000) return alert('Yorum 1000 karakteri aşamaz.');
+      const btn = document.getElementById('sendCommentBtn');
+      btn.disabled = true;
+      try{
+        await commentsCol.add({
+          text,
+          uid: CURRENT_UID,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('commentInput').value = '';
+      }catch(e){
+        alert('Gönderilemedi: '+ e.message);
+      }finally{
+        btn.disabled = false;
+      }
+    });
+
+    // Basit XSS korunumu
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"]+/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+    }
+  </script>
+</body>
+</html>
