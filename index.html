@@ -6,6 +6,8 @@
     <title>KitsuneAnime - Anime İzle</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script type="module" src="script.js"></script>
 </head>
 <body>
@@ -119,6 +121,60 @@
                 </div>
                 <div class="anime-list-grid" id="anime-archive-list">
                     </div>
+            </div>
+        </section>
+
+        <section id="anime-detail-section" class="page-section" style="display: none;">
+            <div class="anime-header">
+                <div id="anime-title-main"></div>
+                <div class="social-share">
+                    <span>Paylaş:</span>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-reddit"></i></a>
+                </div>
+            </div>
+            
+            <div class="player-container">
+                <video id="anime-video-player" class="video-js vjs-theme-forest vjs-big-play-centered" controls preload="auto" width="100%" height="auto">
+                    <p class="vjs-no-js">
+                        To view this video please enable JavaScript, and consider upgrading to a
+                        web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+                    </p>
+                </video>
+            </div>
+            
+            <div class="anime-details-row">
+                <div class="details-left">
+                    <div class="anime-summary">
+                        <h3>Özet</h3>
+                        <p id="anime-synopsis"></p>
+                    </div>
+                    <div class="comments-section">
+                        <h3>Yorumlar</h3>
+                        <div class="comment-form-container" id="comment-form-container">
+                            <p>Yorum yapabilmek için <a href="#" id="login-to-comment">giriş yapmanız</a> gerekmektedir.</p>
+                        </div>
+                        <div class="comments-list" id="comments-list">
+                            </div>
+                    </div>
+                </div>
+                <div class="details-right">
+                    <div class="episode-list-panel">
+                        <div class="panel-header">
+                            <h3 id="episode-list-title"></h3>
+                            <div class="sort-by">
+                                <label>Sıralama:</label>
+                                <select id="sort-episodes">
+                                    <option value="asc">Eski Bölümden Yeniye</option>
+                                    <option value="desc">Yeni Bölümden Eskiye</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="episodes-container" id="episodes-container">
+                            </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
