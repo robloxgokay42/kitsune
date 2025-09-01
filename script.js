@@ -1,7 +1,7 @@
 // Firebase SDK modüllerini import ediyoruz
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 // Firebase config kodun buraya geliyor
 const firebaseConfig = {
@@ -36,7 +36,7 @@ async function checkCountry() {
 }
 checkCountry();
 
-// Anime Verileri - Google Drive bağlantıları ve bölüm bilgileri eklendi
+// Anime Verileri - Google Drive bağlantıları ve bölüm bilgileri
 const animeData = [
     { 
         id: 'anime1', 
@@ -46,15 +46,20 @@ const animeData = [
         year: 2013, 
         genres: ['Aksiyon', 'Fantastik'], 
         synopsis: "Eren Jaeger, üvey kardeşi Mikasa Ackerman ve arkadaşı Armin Arlert'in yaşamı, dev bir Titan'ın duvarı yıkmasıyla değişir...",
-        episodes: [
-            { ep: 1, videoId: '12G3w0b-tJ8uP1D8U3w0bA9-xG3w0b' }, // Örnek Google Drive ID
-            { ep: 2, videoId: '1Hj8G3w0b4u3tB9gHj8G3w0bK2nL8P1D' },
-            { ep: 3, videoId: null }, // Yayınlanmamış bölüm
-            { ep: 4, videoId: '1L2nL8P1D1hHj8G3w0bK2nL8P1D' },
-            { ep: 5, videoId: null },
-            { ep: 6, videoId: '1B9gHj8G3w0bK2nL8P1D1hHj8' },
-            { ep: 7, videoId: '1D8G3w0b-tJ8uP1D8U3w0bA9-xG3w0' },
-            { ep: 8, videoId: '1D8G3w0b-tJ8uP1D8U3w0bA9-xG3w0' }
+        seasons: [
+            { 
+                season: 1, 
+                episodes: [
+                    { ep: 1, videoId: '12G3w0b-tJ8uP1D8U3w0bA9-xG3w0b', title: "Sezon 1 Bölüm 1" }, 
+                    { ep: 2, videoId: '1Hj8G3w0b4u3tB9gHj8G3w0bK2nL8P1D', title: "Sezon 1 Bölüm 2" },
+                    { ep: 3, videoId: null, title: "Sezon 1 Bölüm 3" }, // Yayınlanmamış bölüm
+                    { ep: 4, videoId: '1L2nL8P1D1hHj8G3w0bK2nL8P1D', title: "Sezon 1 Bölüm 4" },
+                    { ep: 5, videoId: null, title: "Sezon 1 Bölüm 5" },
+                    { ep: 6, videoId: '1B9gHj8G3w0bK2nL8P1D1hHj8', title: "Sezon 1 Bölüm 6" },
+                    { ep: 7, videoId: '1D8G3w0b-tJ8uP1D8U3w0bA9-xG3w0', title: "Sezon 1 Bölüm 7" },
+                    { ep: 8, videoId: '1D8G3w0b-tJ8uP1D8U3w0bA9-xG3w0', title: "Sezon 1 Bölüm 8" }
+                ]
+            },
         ]
     },
     { 
@@ -65,9 +70,14 @@ const animeData = [
         year: 2020, 
         genres: ['Aksiyon', 'Doğaüstü'], 
         synopsis: "Lise öğrencisi Yuji Itadori, lanetli bir objeyi yuttuktan sonra büyücü olur...",
-        episodes: [
-            { ep: 1, videoId: '1L7uP1D8U3w0bA9-xG3w0b-tJ8' },
-            { ep: 2, videoId: '1Hj8G3w0b4u3tB9gHj8G3w0bK2nL8P1D' }
+        seasons: [
+            {
+                season: 1,
+                episodes: [
+                    { ep: 1, videoId: '1L7uP1D8U3w0bA9-xG3w0b-tJ8', title: "Sezon 1 Bölüm 1" },
+                    { ep: 2, videoId: '1Hj8G3w0b4u3tB9gHj8G3w0bK2nL8P1D', title: "Sezon 1 Bölüm 2" }
+                ]
+            }
         ]
     }
     // ...daha fazla anime ekleyebilirsin
@@ -97,8 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const episodesContainer = document.getElementById('episodes-container');
     const commentsList = document.getElementById('comments-list');
     const commentFormContainer = document.getElementById('comment-form-container');
+    const sortEpisodesSelect = document.getElementById('sort-episodes');
+    const animeTitleMain = document.getElementById('anime-title-main');
 
     let videoPlayer;
+    let currentAnimeId;
+    let currentAnimeEpisodes = []; // Bölüm listesini burada tutacağız
+    let commentsUnsubscribe; // onSnapshot dinleyicisini kontrol etmek için
 
     // Modalları açma ve kapama
     const showModal = (form) => {
@@ -113,9 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); showModal('register'); });
     document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showModal('login'); });
-    if (loginToComment) {
-        loginToComment.addEventListener('click', (e) => { e.preventDefault(); showModal('login'); });
-    }
 
     // Firebase Giriş ve Kayıt Fonksiyonları
     document.getElementById('login-btn').addEventListener('click', async () => {
@@ -159,17 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Yorum gönderme listener'ı
             document.getElementById('submit-comment').addEventListener('click', async () => {
                 const commentText = document.getElementById('comment-text').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                const animeId = urlParams.get('anime');
+                const animeId = currentAnimeId;
 
                 if (commentText.trim() === '') {
-                    alert('Yorum boş olamaz.');
+                    document.getElementById('comment-error-message').textContent = 'Yorum boş olamaz.';
                     return;
                 }
 
                 if (user && animeId) {
                     await addComment(animeId, commentText, user.uid, user.email);
                     document.getElementById('comment-text').value = '';
+                    document.getElementById('comment-error-message').textContent = '';
                 }
             });
         } else {
@@ -197,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ana sayfaya dönme
     logo.addEventListener('click', (e) => {
         e.preventDefault();
-        window.location.href = '#home';
+        window.history.pushState({}, '', '/');
         renderPage('home');
     });
 
@@ -207,12 +219,16 @@ document.addEventListener('DOMContentLoaded', () => {
             section.style.display = 'none';
         });
 
+        if (commentsUnsubscribe) {
+            commentsUnsubscribe();
+        }
+
         if (pageName === 'home') {
             document.getElementById('home-section').style.display = 'block';
         } else if (pageName === 'archive') {
             document.getElementById('archive-section').style.display = 'block';
         } else if (pageName === 'anime-detail') {
-            document.getElementById('anime-detail-section').style.display = 'block';
+            document.getElementById('anime-detail-section').style.display = 'flex';
             loadAnimeDetails(params.animeId);
         }
     };
@@ -224,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const targetId = e.target.getAttribute('href').substring(1);
             if (targetId === 'home' || targetId === 'archive') {
+                window.history.pushState({}, '', `?page=${targetId}`);
                 renderPage(targetId);
             } else {
                 alert('Bu sayfa henüz yapılmadı!');
@@ -232,19 +249,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Yorum Sistemi Fonksiyonları (Firebase Firestore)
-    async function loadComments(animeId) {
+    function loadComments(animeId) {
         const commentsRef = collection(db, "comments");
-        const q = query(commentsRef, where("animeId", "==", animeId), orderBy("timestamp", "asc"));
+        const q = query(commentsRef, where("animeId", "==", animeId), orderBy("timestamp", "desc"));
         
-        onSnapshot(q, (snapshot) => {
-            commentsList.innerHTML = ''; // Yorum listesini temizle
+        // onSnapshot ile anlık dinleme
+        commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+            commentsList.innerHTML = '';
             snapshot.forEach((doc) => {
                 const comment = doc.data();
                 const commentEl = document.createElement('div');
                 commentEl.classList.add('comment');
                 commentEl.innerHTML = `
-                    <p><strong>${comment.userName || 'Anonim'}</strong>: ${comment.text}</p>
-                    <small>Yazan: ${comment.userEmail} | ${new Date(comment.timestamp.toDate()).toLocaleString()}</small>
+                    <p><strong>${comment.userEmail.split('@')[0]}</strong>: ${comment.text}</p>
+                    <small>${new Date(comment.timestamp.toDate()).toLocaleString()}</small>
                 `;
                 commentsList.appendChild(commentEl);
             });
@@ -261,9 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 userEmail: userEmail,
                 timestamp: new Date()
             });
-            alert('Yorumunuz başarıyla gönderildi!');
         } catch (e) {
             console.error("Yorum ekleme hatası: ", e);
+            document.getElementById('comment-error-message').textContent = 'Yorum eklenirken bir hata oluştu.';
         }
     }
 
@@ -281,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             card.addEventListener('click', () => {
-                window.history.pushState({}, '', `?anime=${anime.id}`);
+                window.history.pushState({}, '', `?page=anime-detail&id=${anime.id}`);
                 renderPage('anime-detail', { animeId: anime.id });
             });
             listElement.appendChild(card);
@@ -306,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             card.addEventListener('click', () => {
-                window.history.pushState({}, '', `?anime=${anime.id}`);
+                window.history.pushState({}, '', `?page=anime-detail&id=${anime.id}`);
                 renderPage('anime-detail', { animeId: anime.id });
             });
             animeArchiveList.appendChild(card);
@@ -342,25 +360,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const anime = animeData.find(a => a.id === animeId);
         if (!anime) {
             alert('Anime bulunamadı!');
+            window.history.pushState({}, '', `?page=home`);
             renderPage('home');
             return;
         }
 
-        document.getElementById('anime-title-main').textContent = `${anime.title} Sezon 1 Bölüm 1`; // Başlangıç bölümü
+        currentAnimeId = animeId;
+        currentAnimeEpisodes = anime.seasons.flatMap(s => s.episodes);
+        
         document.getElementById('anime-synopsis').textContent = anime.synopsis;
         document.getElementById('episode-list-title').textContent = `${anime.title} Bölümleri`;
+
+        const sortOrder = sortEpisodesSelect.value;
+        const sortedEpisodes = [...currentAnimeEpisodes].sort((a, b) => {
+            if (sortOrder === 'asc') {
+                return a.ep - b.ep;
+            } else {
+                return b.ep - a.ep;
+            }
+        });
+        renderEpisodeList(sortedEpisodes, anime.title);
         
-        renderEpisodeList(anime);
+        sortEpisodesSelect.addEventListener('change', () => {
+            const newSortOrder = sortEpisodesSelect.value;
+            const newSortedEpisodes = [...currentAnimeEpisodes].sort((a, b) => {
+                if (newSortOrder === 'asc') {
+                    return a.ep - b.ep;
+                } else {
+                    return b.ep - a.ep;
+                }
+            });
+            renderEpisodeList(newSortedEpisodes, anime.title);
+        });
+
         loadComments(animeId);
         
         // Varsayılan olarak ilk bölümü oynat
-        playEpisode(anime.episodes[0]);
+        const firstEpisode = sortedEpisodes[0];
+        if (firstEpisode) {
+            playEpisode(firstEpisode, anime.title);
+        }
     };
 
     // Bölüm listesini oluşturan fonksiyon
-    const renderEpisodeList = (anime) => {
+    const renderEpisodeList = (episodes, animeTitle) => {
         episodesContainer.innerHTML = '';
-        anime.episodes.forEach(ep => {
+        episodes.forEach(ep => {
             const episodeItem = document.createElement('div');
             episodeItem.classList.add('episode-item');
             if (!ep.videoId) {
@@ -368,11 +413,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             episodeItem.innerHTML = `
                 <span class="episode-number">${ep.ep}</span>
-                <span>${anime.title} Sezon 1 Bölüm ${ep.ep}</span>
+                <span>${ep.title}</span>
             `;
             episodeItem.addEventListener('click', () => {
                 if (ep.videoId) {
-                    playEpisode(ep);
+                    playEpisode(ep, animeTitle);
                 } else {
                     alert('Bu bölüm henüz yayınlanmadı!');
                 }
@@ -382,14 +427,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Video oynatıcıyı güncelleyen fonksiyon
-    const playEpisode = (episode) => {
+    const playEpisode = (episode, animeTitle) => {
         const videoElement = document.getElementById('anime-video-player');
         if (videoPlayer) {
             videoPlayer.dispose();
         }
 
         if (episode.videoId) {
-            // Google Drive doğrudan indirme URL'si
             const videoUrl = `https://drive.google.com/uc?export=download&id=${episode.videoId}`;
             videoElement.style.display = 'block';
             videoElement.innerHTML = `<source src="${videoUrl}" type="video/mp4" />`;
@@ -398,20 +442,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 autoplay: true,
                 muted: true
             });
+            animeTitleMain.textContent = `${animeTitle} ${episode.title}`;
         } else {
             videoElement.style.display = 'none';
-            videoElement.innerHTML = `<div class="unavailable-video-placeholder">Bu bölüm henüz yayınlanmadı.</div>`;
+            animeTitleMain.textContent = `${animeTitle} ${episode.title} - Yayınlanmadı`;
         }
-        
-        document.getElementById('anime-title-main').textContent = `${animeData.find(a => a.id === 'anime1').title} Sezon 1 Bölüm ${episode.ep}`;
     };
 
     // Sayfa yüklendiğinde URL'yi kontrol et
     const initialLoad = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const animeId = urlParams.get('anime');
-        if (animeId) {
+        const pageName = urlParams.get('page');
+        const animeId = urlParams.get('id');
+
+        if (pageName === 'anime-detail' && animeId) {
             renderPage('anime-detail', { animeId });
+        } else if (pageName === 'archive') {
+            renderPage('archive');
         } else {
             renderPage('home');
             renderAnimeCards(newEpisodesList, animeData.slice(0, 8));
