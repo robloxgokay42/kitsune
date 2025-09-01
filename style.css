@@ -438,6 +438,11 @@ body {
 }
 
 /* Anime Detay Sayfası Stilleri */
+#anime-detail-section {
+    display: flex;
+    flex-direction: column;
+}
+
 .anime-header {
     display: flex;
     justify-content: space-between;
@@ -534,38 +539,31 @@ body {
     cursor: pointer;
 }
 
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
 .comment {
     background-color: var(--bg-color);
     padding: 15px;
     border-radius: 8px;
-    margin-bottom: 15px;
+    border-left: 3px solid var(--accent-color);
 }
 
 .comment p {
     margin-bottom: 5px;
 }
 
+.comment strong {
+    color: var(--accent-color);
+}
+
 .comment small {
     display: block;
     font-size: 11px;
     opacity: 0.6;
-}
-
-.comment-actions {
-    margin-top: 10px;
-    display: flex;
-    gap: 15px;
-    font-size: 14px;
-}
-
-.comment-actions a {
-    color: var(--text-color);
-    text-decoration: none;
-    transition: color 0.3s;
-}
-
-.comment-actions a:hover {
-    color: var(--accent-color);
 }
 
 .episode-list-panel .panel-header {
@@ -606,6 +604,7 @@ body {
     color: #fff;
     width: 30px;
     height: 30px;
+    flex-shrink: 0;
     display: flex;
     justify-content: center;
     align-items: center;
