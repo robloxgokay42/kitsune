@@ -1,4 +1,9 @@
-// Firebase yapılandırma
+// Firebase SDK modüllerini import ediyoruz
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+// Firebase config kodun buraya geliyor
 const firebaseConfig = {
     apiKey: "AIzaSyBteeGvXCW0H0Hxfc8P18AFpycInAXs8Fs",
     authDomain: "kitsuneanime-eddc6.firebaseapp.com",
@@ -9,191 +14,248 @@ const firebaseConfig = {
     measurementId: "G-RPM6XWLH8D"
 };
 
-// Firebase'i başlat
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+// Firebase servislerini başlatıyoruz
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// Türkiye'ye özel erişim kontrolü
-fetch('https://ipinfo.io/json')
-    .then(response => response.json())
-    .then(data => {
-        if (data.country !== 'TR') {
-            document.body.innerHTML = '<h1>Bu site sadece Türkiye’den erişime açıktır.</h1>';
-            setTimeout(() => window.location.href = 'https://www.google.com', 3000);
+// Sadece Türkiye'den erişim kontrolü
+async function checkCountry() {
+    try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        if (data.country_code !== 'TR') {
+            document.querySelector('.restriction-overlay').style.display = 'flex';
         }
-    })
-    .catch(() => {
-        document.body.innerHTML = '<h1>Konum doğrulaması başarısız. Lütfen Türkiye’den bağlanın.</h1>';
-        setTimeout(() => window.location.href = 'https://www.google.com', 3000);
-    });
-
-// Örnek anime verileri (Firebase'den çekilebilir)
-const animes = [
-    { id: 1, title: "Tougen Anki", score: 8.3, year: 2025, type: "featured", episode: "1. Sezon 8. Bölüm", daysAgo: 1 },
-    { id: 2, title: "Dan Da Dan", score: 7.5, year: 2025, type: "featured", episode: "2. Sezon 9. Bölüm", daysAgo: 2 },
-    { id: 3, title: "I Was Reincarnated as the 7th...", score: 8.0, year: 2025, type: "latest", episode: "2. Sezon 8. Bölüm", daysAgo: 3 },
-    { id: 4, title: "The Rising of the Shield Hero", score: 7.8, year: 2025, type: "latest", episode: "4. Sezon 8. Bölüm", daysAgo: 4 },
-    { id: 5, title: "My Melody & Kuromi", score: 8.3, year: 2025, type: "new", episode: null, daysAgo: 0 },
-    { id: 6, title: "Bullet Bullet", score: 6.4, year: 2025, type: "new", episode: null, daysAgo: 0 }
-];
-
-// Anime kartlarını oluştur
-function loadAnimes() {
-    const sections = {
-        featured: document.getElementById('featured-animes'),
-        latest: document.getElementById('latest-episodes'),
-        new: document.getElementById('new-animes'),
-        episodes: document.getElementById('new-episodes')
-    };
-
-    animes.forEach(anime => {
-        const card = document.createElement('div');
-        card.className = 'anime-card';
-        card.innerHTML = `
-            <img src="https://via.placeholder.com/180" alt="${anime.title}">
-            <h3>${anime.title}</h3>
-            <p class="rating">Puan: ${anime.score}/10</p>
-            <p>Yıl: ${anime.year}</p>
-            ${anime.episode ? `<p>${anime.episode} - ${anime.daysAgo} gün önce</p>` : ''}
-            <div class="rating-controls" role="group" aria-label="Puanlama">
-                <button class="rate-btn" onclick="rateAnime(${anime.id}, 1)">1</button>
-                <button class="rate-btn" onclick="rateAnime(${anime.id}, 2)">2</button>
-                <button class="rate-btn" onclick="rateAnime(${anime.id}, 3)">3</button>
-                <button class="rate-btn" onclick="rateAnime(${anime.id}, 4)">4</button>
-                <button class="rate-btn" onclick="rateAnime(${anime.id}, 5)">5</button>
-            </div>
-        `;
-        if (anime.type === 'featured') sections.featured.appendChild(card.cloneNode(true));
-        else if (anime.type === 'latest') sections.latest.appendChild(card.cloneNode(true));
-        else if (anime.type === 'new') sections.new.appendChild(card.cloneNode(true));
-    });
-
-    // Son eklenen bölümler
-    animes.forEach(anime => {
-        if (anime.episode) {
-            const episodeCard = document.createElement('div');
-            episodeCard.className = 'anime-card';
-            episodeCard.innerHTML = `
-                <img src="https://via.placeholder.com/180" alt="${anime.title} Bölüm">
-                <h3>${anime.episode} - ${anime.daysAgo} gün önce</h3>
-                <p>${anime.title}</p>
-            `;
-            sections.episodes.appendChild(episodeCard);
-        }
-    });
-}
-
-loadAnimes();
-
-// Arama fonksiyonu
-document.getElementById('search').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    document.querySelectorAll('.anime-card').forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        card.style.display = title.includes(searchTerm) ? 'block' : 'none';
-    });
-});
-
-// Yorum ekleme fonksiyonu
-function addComment() {
-    const commentInput = document.getElementById('comment-input').value.trim();
-    if (commentInput) {
-        const commentsRef = database.ref('comments');
-        commentsRef.push({
-            text: commentInput,
-            timestamp: new Date().toISOString(),
-            user: `Kullanıcı${Math.floor(Math.random() * 1000)}`
-        });
-        document.getElementById('comment-input').value = '';
-        loadComments();
+    } catch (error) {
+        console.error('IP adresi kontrolü başarısız oldu.', error);
+        // Hata durumunda siteyi engellemek güvenli bir yaklaşımdır.
+        document.querySelector('.restriction-overlay').style.display = 'flex';
     }
 }
+checkCountry();
 
-// Yorumları yükleme fonksiyonu
-function loadComments() {
-    const commentsList = document.getElementById('comments-list');
-    commentsList.innerHTML = '';
-    const commentsRef = database.ref('comments');
-    commentsRef.on('value', (snapshot) => {
-        snapshot.forEach(childSnapshot => {
-            const comment = childSnapshot.val();
-            const commentDiv = document.createElement('div');
-            commentDiv.className = 'comment';
-            commentDiv.innerHTML = `
-                <p><strong>${comment.user}</strong>: ${comment.text} <small>${new Date(comment.timestamp).toLocaleString('tr-TR')}</small></p>
-                <textarea class="reply-input" placeholder="Yanıt yaz..." aria-label="Yanıt gir"></textarea>
-                <button class="btn" onclick="addReply('${childSnapshot.key}')">Yanıt Ekle</button>
-                <div class="replies"></div>
-            `;
-            commentsList.appendChild(commentDiv);
-            loadReplies(commentDiv, childSnapshot.key);
-        });
+document.addEventListener('DOMContentLoaded', () => {
+
+    const authModal = document.getElementById('auth-modal');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    const loginBtnHeader = document.getElementById('login-btn-header');
+    const signupBtn = document.getElementById('signup-btn');
+    const userButtons = document.querySelector('.user-buttons');
+    const userProfile = document.querySelector('.user-profile');
+    const userDisplayName = document.getElementById('user-display-name');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Modalları açma ve kapama
+    loginBtnHeader.addEventListener('click', () => {
+        authModal.style.display = 'flex';
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
     });
-}
-
-function loadReplies(commentDiv, commentId) {
-    const repliesDiv = commentDiv.querySelector('.replies');
-    const repliesRef = database.ref(`comments/${commentId}/replies`);
-    repliesRef.on('value', (snapshot) => {
-        repliesDiv.innerHTML = '';
-        snapshot.forEach(childSnapshot => {
-            const reply = childSnapshot.val();
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'reply';
-            replyDiv.innerHTML = `<p><strong>${reply.user || 'Misafir'}</strong>: ${reply.text} <small>${new Date(reply.timestamp).toLocaleString('tr-TR')}</small></p>`;
-            repliesDiv.appendChild(replyDiv);
-        });
+    signupBtn.addEventListener('click', () => {
+        authModal.style.display = 'flex';
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
     });
-}
+    document.querySelector('.close-btn').addEventListener('click', () => {
+        authModal.style.display = 'none';
+    });
 
-function addReply(commentId) {
-    const replyInput = document.querySelector(`#comments-list .comment:nth-child(${parseInt(commentId) + 1} .reply-input`).value.trim();
-    if (replyInput) {
-        const commentRef = database.ref(`comments/${commentId}`);
-        commentRef.once('value', (snapshot) => {
-            const comment = snapshot.val() || { replies: [] };
-            comment.replies = comment.replies || [];
-            comment.replies.push({
-                text: replyInput,
-                timestamp: new Date().toISOString(),
-                user: `Misafir${Math.floor(Math.random() * 1000)}`
-            });
-            commentRef.update(comment);
-        });
-        document.querySelector(`#comments-list .comment:nth-child(${parseInt(commentId) + 1} .reply-input`).value = '';
-    }
-}
+    // Formlar arası geçiş
+    document.getElementById('show-register').addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    });
+    document.getElementById('show-login').addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+    });
 
-window.onload = loadComments;
-
-// Puanlama fonksiyonu
-function rateAnime(animeId, rating) {
-    const ratingsRef = database.ref(`ratings/${animeId}`);
-    ratingsRef.transaction(current => {
-        if (current === null) return { total: rating, count: 1 };
-        return { total: current.total + rating, count: current.count + 1 };
-    }, () => updateRatingDisplay(animeId));
-}
-
-function updateRatingDisplay(animeId) {
-    const ratingsRef = database.ref(`ratings/${animeId}`);
-    ratingsRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            const average = data.total / data.count;
-            document.querySelectorAll(`.anime-card`).forEach(card => {
-                if (card.querySelector('h3').textContent.includes(animes.find(a => a.id === animeId).title)) {
-                    card.querySelector('.rating').textContent = `Puan: ${average.toFixed(1)}/10 (${data.count} oy)`;
-                }
-            });
+    // Firebase Giriş ve Kayıt Fonksiyonları
+    document.getElementById('login-btn').addEventListener('click', async () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorMessage = document.getElementById('login-error-message');
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            authModal.style.display = 'none';
+        } catch (error) {
+            errorMessage.textContent = 'Giriş Başarısız: ' + error.message;
         }
     });
-}
 
-// Erişilebilirlik ve klavye navigasyonu
-document.querySelectorAll('button, input, textarea').forEach(element => {
-    element.setAttribute('tabindex', '0');
-    element.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') e.target.click();
+    document.getElementById('register-btn').addEventListener('click', async () => {
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const errorMessage = document.getElementById('register-error-message');
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            authModal.style.display = 'none';
+        } catch (error) {
+            errorMessage.textContent = 'Kayıt Başarısız: ' + error.message;
+        }
     });
+
+    // Oturum Yönetimi ve UI Güncellemesi
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userButtons.style.display = 'none';
+            userProfile.classList.remove('hidden');
+            userDisplayName.textContent = user.email; // veya kullanıcı adı
+        } else {
+            userButtons.style.display = 'flex';
+            userProfile.classList.add('hidden');
+        }
+    });
+
+    // Çıkış Yapma Fonksiyonu
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await signOut(auth);
+            alert('Başarıyla çıkış yapıldı!');
+        } catch (error) {
+            console.error('Çıkış yapma hatası:', error);
+        }
+    });
+
+    // Sayfa Gezintisi (Single-page application mantığı)
+    const navLinks = document.querySelectorAll('.main-nav a');
+    const sections = document.querySelectorAll('.page-section');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = e.target.getAttribute('href').substring(1);
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            if (targetId) {
+                document.getElementById(`${targetId}-section`).style.display = 'block';
+            }
+        });
+    });
+
+    // Dummy Anime Verisi (Gerçek bir API veya daha kapsamlı bir JSON yapısı kullanılabilir)
+    const animeData = [
+        { id: 'anime1', title: 'Attack on Titan', poster: 'https://i.ibb.co/C0hYjM8/attack-on-titan.jpg', imdb: 9.1, year: 2013, genres: ['Aksiyon', 'Fantastik'], synopsis: "İnsanlık, devler tarafından yok edilmenin eşiğine gelmiştir..." },
+        { id: 'anime2', title: 'Fullmetal Alchemist', poster: 'https://i.ibb.co/D8G3w0b/fullmetal-alchemist.jpg', imdb: 9.1, year: 2009, genres: ['Macera', 'Fantastik'], synopsis: "Edward ve Alphonse Elric kardeşler, annelerini diriltmek için simyayı kullanır..." },
+        { id: 'anime3', title: 'Jujutsu Kaisen', poster: 'https://i.ibb.co/v4t0f4B/jujutsu-kaisen.jpg', imdb: 8.7, year: 2020, genres: ['Aksiyon', 'Doğaüstü'], synopsis: "Lise öğrencisi Yuji Itadori, lanetli bir objeyi yuttuktan sonra büyücü olur..." },
+        // ...daha fazla anime ekleyebilirsin
+    ];
+    
+    // Yorum Sistemi Fonksiyonları (Firebase Firestore)
+    async function loadComments(animeId) {
+        const commentsRef = collection(db, "comments");
+        const q = query(commentsRef, where("animeId", "==", animeId), orderBy("timestamp"));
+        
+        onSnapshot(q, (snapshot) => {
+            const commentsList = document.getElementById('comments-list');
+            commentsList.innerHTML = ''; // Yorum listesini temizle
+            snapshot.forEach((doc) => {
+                const comment = doc.data();
+                const commentEl = document.createElement('div');
+                commentEl.classList.add('comment');
+                commentEl.innerHTML = `
+                    <p><strong>${comment.userName || 'Anonim'}</strong>: ${comment.text}</p>
+                    <small>${new Date(comment.timestamp.toDate()).toLocaleString()}</small>
+                `;
+                commentsList.appendChild(commentEl);
+            });
+        });
+    }
+
+    // Yorum Ekleme Fonksiyonu
+    async function addComment(animeId, text, userId) {
+        const commentsRef = collection(db, "comments");
+        try {
+            await addDoc(commentsRef, {
+                animeId: animeId,
+                text: text,
+                userId: userId,
+                timestamp: new Date()
+            });
+        } catch (e) {
+            console.error("Yorum ekleme hatası: ", e);
+        }
+    }
+
+    // Anime listesini ekrana basan fonksiyon
+    function renderAnimeCards(listId, data) {
+        const listElement = document.getElementById(listId);
+        listElement.innerHTML = '';
+        data.forEach(anime => {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.innerHTML = `
+                <img src="${anime.poster}" alt="${anime.title}">
+                <div class="card-info">
+                    <h4>${anime.title}</h4>
+                    <p>IMDB: ${anime.imdb}</p>
+                </div>
+            `;
+            card.addEventListener('click', () => {
+                // Burada anime detay sayfasına yönlendirme veya dinamik içerik yükleme yapılabilir.
+                // Örneğin: window.location.href = `anime.html?id=${anime.id}`;
+                alert(`${anime.title} sayfasına yönlendiriliyorsunuz.`);
+            });
+            listElement.appendChild(card);
+        });
+    }
+
+    // Anime arşivini ekrana basan fonksiyon
+    function renderArchive(data) {
+        const listElement = document.getElementById('anime-archive-list');
+        listElement.innerHTML = '';
+        data.forEach(anime => {
+            const card = document.createElement('div');
+            card.classList.add('anime-archive-card');
+            card.innerHTML = `
+                <img src="${anime.poster}" alt="${anime.title}">
+                <div class="anime-archive-info">
+                    <h4>${anime.title} <span class="imdb-score">${anime.imdb}</span></h4>
+                    <p>Yapım Yılı: ${anime.year}</p>
+                    <p>${anime.synopsis.substring(0, 100)}...</p>
+                    <div class="tags">
+                        ${anime.genres.map(tag => `<span>${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+            listElement.appendChild(card);
+        });
+    }
+
+    // Sayfa yüklendiğinde içerikleri render et
+    renderAnimeCards('new-episodes-list', animeData.slice(0, 8));
+    renderAnimeCards('featured-animes-list', animeData.slice(0, 5));
+    renderAnimeCards('popular-episodes-list', animeData.slice(5, 10));
+    renderArchive(animeData);
+
+    // Filtreleme fonksiyonu
+    function applyFilters() {
+        const imdbFilter = parseFloat(document.getElementById('imdb-filter').value);
+        const yearFilter = parseInt(document.getElementById('year-filter').value);
+        const nameFilter = document.getElementById('name-filter').value.toLowerCase();
+        const categoryCheckboxes = document.querySelectorAll('#category-filter input[type="checkbox"]:checked');
+        const selectedCategories = Array.from(categoryCheckboxes).map(cb => cb.value);
+
+        const filteredData = animeData.filter(anime => {
+            const matchesImdb = isNaN(imdbFilter) || anime.imdb >= imdbFilter;
+            const matchesYear = isNaN(yearFilter) || anime.year === yearFilter;
+            const matchesName = anime.title.toLowerCase().includes(nameFilter);
+            const matchesCategory = selectedCategories.length === 0 || selectedCategories.some(cat => anime.genres.includes(cat));
+            return matchesImdb && matchesYear && matchesName && matchesCategory;
+        });
+
+        renderArchive(filteredData);
+    }
+
+    document.getElementById('imdb-filter').addEventListener('change', applyFilters);
+    document.getElementById('year-filter').addEventListener('input', applyFilters);
+    document.getElementById('name-filter').addEventListener('input', applyFilters);
+    document.getElementById('category-filter').addEventListener('change', applyFilters);
+
 });
