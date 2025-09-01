@@ -3,65 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="YeniWatch - Güncel Türkçe anime izleme platformu">
-    <title>YeniWatch - Türkçe Anime İzle</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="https://via.placeholder.com/32">
-    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js" defer></script>
-    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js" defer></script>
+    <title>KitsuneAnime - Anime İzle</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script type="module" src="script.js"></script>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <h1>YeniWatch</h1>
-            <p>Güncel animeleri izle!</p>
-            <div class="header-actions">
-                <input type="text" id="search" placeholder="Dizi veya anime ara..." aria-label="Anime ara" autocomplete="off">
-                <nav>
-                    <ul>
-                        <li><a href="#featured">Öne Çıkan</a></li>
-                        <li><a href="#latest">Popüler Son</a></li>
-                        <li><a href="#new-animes">Yeni Animeler</a></li>
-                        <li><a href="#new-episodes">Yeni Bölümler</a></li>
-                        <li><a href="#comments">Yorumlar</a></li>
-                    </ul>
-                </nav>
-                <div class="auth-buttons">
-                    <button class="btn" onclick="location.href='register.html'">Üye Ol</button>
-                    <button class="btn" onclick="location.href='login.html'">Üye Girişi</button>
-                </div>
+
+    <div class="restriction-overlay">
+        <div class="restriction-message">
+            <i class="fa-solid fa-earth-americas"></i>
+            <h3>Erişim Kısıtlaması</h3>
+            <p>Bu siteye yalnızca Türkiye'den erişim sağlanmaktadır. Lütfen VPN veya farklı bir konumdan bağlanmayı denemeyiniz.</p>
+        </div>
+    </div>
+
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="login-form" class="auth-form">
+                <h2>Giriş Yap</h2>
+                <input type="email" id="login-email" placeholder="E-posta">
+                <input type="password" id="login-password" placeholder="Şifre">
+                <button id="login-btn" class="main-btn">Giriş Yap</button>
+                <p>Hesabın yok mu? <a href="#" id="show-register">Kayıt Ol</a></p>
+                <p id="login-error-message" class="error-message"></p>
+            </div>
+            <div id="register-form" class="auth-form" style="display: none;">
+                <h2>Kayıt Ol</h2>
+                <input type="email" id="register-email" placeholder="E-posta">
+                <input type="password" id="register-password" placeholder="Şifre">
+                <button id="register-btn" class="main-btn">Kayıt Ol</button>
+                <p>Zaten bir hesabın var mı? <a href="#" id="show-login">Giriş Yap</a></p>
+                <p id="register-error-message" class="error-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="container">
+            <div class="logo">KitsuneAnime</div>
+            <div class="search-bar">
+                <input type="text" placeholder="bölüm veya anime arayın...">
+                <i class="fas fa-search"></i>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#home">Anasayfa</a></li>
+                    <li><a href="#calendar">Takvim</a></li>
+                    <li><a href="#archive">Anime Arşivi</a></li>
+                    <li><a href="#app">Mobil Uygulama</a></li>
+                    <li><a href="#new-episodes">Yeni Bölümler</a></li>
+                    <li><a href="#discord">Discord</a></li>
+                    <li><a href="#contact">İletişim</a></li>
+                </ul>
+            </nav>
+            <div class="user-buttons">
+                <button id="signup-btn">Üye Ol</button>
+                <button id="login-btn-header">Üye Girişi</button>
+            </div>
+            <div class="user-profile hidden">
+                <span id="user-display-name"></span>
+                <button id="logout-btn">Çıkış Yap</button>
             </div>
         </div>
     </header>
-    <main>
-        <section class="featured" id="featured">
-            <h2>Öne Çıkan Animeler</h2>
-            <div class="anime-grid" id="featured-animes" role="region" aria-label="Öne çıkan animeler"></div>
+
+    <main class="main-content container">
+        <section id="home-section" class="page-section">
+            <h2 class="section-title"><i class="fas fa-play"></i> Yeni Bölümler - KitsuneAnime</h2>
+            <div class="card-grid" id="new-episodes-list">
+                </div>
+            <h2 class="section-title"><i class="fas fa-star"></i> Öne Çıkan Animeler</h2>
+            <div class="card-grid" id="featured-animes-list">
+                </div>
+            <h2 class="section-title"><i class="fas fa-fire"></i> Popüler Animelerden Son Bölümler</h2>
+            <div class="card-grid" id="popular-episodes-list">
+                </div>
         </section>
-        <section class="latest-episodes" id="latest">
-            <h2>Popüler Animelerden Son Bölümler</h2>
-            <div class="anime-grid" id="latest-episodes" role="region" aria-label="Popüler son bölümler"></div>
-        </section>
-        <section class="new-animes" id="new-animes">
-            <h2>Son Eklenen Animeler</h2>
-            <div class="anime-grid" id="new-animes" role="region" aria-label="Son eklenen animeler"></div>
-        </section>
-        <section class="new-episodes" id="new-episodes">
-            <h2>Son Eklenen Anime Bölümleri</h2>
-            <div class="anime-grid" id="new-episodes" role="region" aria-label="Son eklenen bölümler"></div>
-        </section>
-        <section class="comments-section" id="comments">
-            <h2>Yorumlar</h2>
-            <div class="comment-form">
-                <textarea id="comment-input" placeholder="Yorum yaz..." aria-label="Yorum gir" rows="3"></textarea>
-                <button class="btn" onclick="addComment()">Yorum Ekle</button>
+
+        <section id="archive-section" class="page-section" style="display: none;">
+            <h2 class="section-title"><i class="fas fa-archive"></i> Anime Arşivi</h2>
+            <div class="archive-container">
+                <div class="filter-panel">
+                    <h3 class="filter-title">Filtrele <i class="fas fa-filter"></i></h3>
+                    <div class="filter-group">
+                        <label>IMDB Puanına Göre</label>
+                        <select id="imdb-filter">
+                            <option value="all">Tümü</option>
+                            <option value="9">IMDB: 9.0+</option>
+                            <option value="8">IMDB: 8.0+</option>
+                            <option value="7">IMDB: 7.0+</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Yapım Yılı</label>
+                        <input type="number" id="year-filter" placeholder="örn: 2023">
+                    </div>
+                    <div class="filter-group">
+                        <label>Anime Adı Filtresi</label>
+                        <input type="text" id="name-filter" placeholder="örn: The Hash">
+                    </div>
+                    <div class="filter-group category-group">
+                        <label>Kategori</label>
+                        <div class="category-list" id="category-filter">
+                            <label><input type="checkbox" value="Aksiyon"> Aksiyon</label>
+                            <label><input type="checkbox" value="Isekai"> İsekai</label>
+                            <label><input type="checkbox" value="Ecchi"> Ecchi</label>
+                            <label><input type="checkbox" value="Harem"> Harem</label>
+                            <label><input type="checkbox" value="Bilim Kurgu"> Bilim Kurgu</label>
+                            <label><input type="checkbox" value="Okul"> Okul</label>
+                            <label><input type="checkbox" value="Fantastik"> Fantastik</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="anime-list-grid" id="anime-archive-list">
+                    </div>
             </div>
-            <div id="comments-list" role="region" aria-live="polite" aria-label="Yorumlar listesi"></div>
         </section>
     </main>
-    <footer>
-        <p>&copy; 2025 YeniWatch. Tüm hakları saklıdır.</p>
-    </footer>
-    <script src="script.js" defer></script>
 </body>
 </html>
