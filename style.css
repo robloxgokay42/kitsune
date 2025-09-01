@@ -46,6 +46,7 @@ body {
     font-size: 28px;
     font-weight: 700;
     color: var(--accent-color);
+    cursor: pointer;
 }
 
 .search-bar {
@@ -278,6 +279,12 @@ body {
     display: flex;
     gap: 20px;
     align-items: flex-start;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.anime-archive-card:hover {
+    transform: translateY(-5px);
 }
 
 .anime-archive-card img {
@@ -428,4 +435,201 @@ body {
 .restriction-message i {
     font-size: 60px;
     color: var(--accent-color);
+}
+
+/* Anime Detay Sayfası Stilleri */
+.anime-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.anime-header #anime-title-main {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.social-share a {
+    color: var(--text-color);
+    font-size: 20px;
+    margin-left: 15px;
+    transition: color 0.3s;
+}
+
+.social-share a:hover {
+    color: var(--accent-color);
+}
+
+.player-container {
+    background-color: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    margin-bottom: 20px;
+}
+
+.player-container .video-js {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.anime-details-row {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 50px;
+}
+
+.details-left {
+    flex-grow: 1;
+}
+
+.details-right {
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.anime-summary, .comments-section, .episode-list-panel {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.comments-section {
+    position: relative;
+}
+
+.comments-section h3 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.comment-form-container textarea {
+    width: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    resize: vertical;
+}
+
+.comment-form-container button {
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.comment {
+    background-color: var(--bg-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.comment p {
+    margin-bottom: 5px;
+}
+
+.comment small {
+    display: block;
+    font-size: 11px;
+    opacity: 0.6;
+}
+
+.comment-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 15px;
+    font-size: 14px;
+}
+
+.comment-actions a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.comment-actions a:hover {
+    color: var(--accent-color);
+}
+
+.episode-list-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.episode-list-panel h3 {
+    font-size: 18px;
+}
+
+.episodes-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.episode-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 8px;
+}
+
+.episode-item:hover {
+    background-color: var(--bg-color);
+}
+
+.episode-item .episode-number {
+    background-color: var(--accent-color);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-weight: 600;
+}
+.episode-item.unavailable {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.episode-item.unavailable .episode-number {
+    background-color: var(--border-color);
+}
+
+.vjs-theme-forest .vjs-big-play-button {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.vjs-theme-forest .vjs-control-bar {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.vjs-paused .vjs-big-play-button,
+.vjs-playing .vjs-big-play-button {
+    background-color: rgba(0, 0, 0, 0.5) !important;
 }
